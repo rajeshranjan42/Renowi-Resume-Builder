@@ -463,14 +463,25 @@ async function exportPDF(){
   const doc = new jsPDF({unit:'pt', format:'letter'});
   const margin = 54; let y = margin; const w = 612 - margin*2;
   const centered = state.tpl==='classic';
-  function line(text, size, bold, gap, color){
+  function line(text, size, bold, gap, color, align='left'){
+    const raw = String(text ?? '');
+    const paragraphs = raw.split(/\r?\n/);
+
     doc.setFont('helvetica', bold?'bold':'normal'); doc.setFontSize(size);
     if(color) doc.setTextColor(color[0],color[1],color[2]); else doc.setTextColor(20,20,20);
-    const lines = doc.splitTextToSize(text, w);
-    lines.forEach(l=>{
-      if(y > 740){ doc.addPage(); y = margin; }
-      if(centered){ doc.text(l, 306, y, {align:'center'}); } else { doc.text(l, margin, y); }
-      y += size*1.32;
+
+    paragraphs.forEach((paragraph, index) => {
+      const safe = paragraph.trimEnd();
+      const lines = safe ? doc.splitTextToSize(safe, w) : [''];
+      lines.forEach(l=>{
+        if(y > 740){ doc.addPage(); y = margin; }
+        const x = align === 'center' ? 306 : (align === 'right' ? 612 - margin : margin);
+        doc.text(l, x, y, {align: align === 'left' ? 'left' : align});
+        y += size*1.32;
+      });
+      if(index < paragraphs.length - 1){
+        y += 2;
+      }
     });
     y += gap;
   }
